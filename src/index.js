@@ -74,6 +74,22 @@ const updateSocreResult = async (createrUser, matchId, scoreResult) => {
   await client.record.updateRecord(updateInfo)
 }
 
+// 更新竞猜记录的积分结果(条件：场次，人)处理结果1条
+const updateStatus = async (id) => {
+  const app = appList.matchInfo
+  const updateInfo = {
+    app,
+    id,
+    record: {
+      [matchInfoField.Finish_status]: {
+        value: 'yes',
+      },
+    },
+  }
+  // console.log(updateInfo)
+  await client.record.updateRecord(updateInfo)
+}
+
 // 更新用户的积分总数 (条件：人) 处理结果1条
 const updateUserSocre = async (createrUser, diffScore) => {
   const app = appList.users
@@ -119,6 +135,13 @@ kintone.events.on('app.record.detail.show', async (event) => {
   button.classList.add('kintoneplugin-button-dialog-ok')
   button.innerText = 'Integral Calculation'
   button.onclick = () => {
+    if (record[matchInfoField.Finish_status].value === 'yes') {
+      Swal.fire({
+        icon: 'error',
+        title: '已完成',
+      })
+      return
+    }
     getChipInListByMatchId(matchId).then(async (resp) => {
       // console.log(resp.records)
       const list = resp.records
@@ -153,7 +176,7 @@ kintone.events.on('app.record.detail.show', async (event) => {
         const userChipInType = item[userChipInField.Chip_in_type].value
         const userChipInScore = Number(item[userChipInField.Chip_in_score].value)
         const leftScore = await GetLeftScore(createrUser)
-        if (leftScore > 0) {
+        if (leftScore >= 0) {
           let gotScore = 0
           let scoreResult = 0
           let diffScore = 0
@@ -194,18 +217,21 @@ kintone.events.on('app.record.detail.show', async (event) => {
             scoreResult = userChipInScore * -1
             diffScore = scoreResult
           }
-          console.log(addRecords)
           await updateSocreResult(createrUser, matchId, scoreResult)
           await updateUserSocre(createrUser, diffScore)
           await addSocreList(addRecords)
+
           // 积分计算：先减去下注，再加上赢取
           // 积分履历：包含下注，如果有赢取就加上
           // 积分结果：赢取就是赢取，输的话是下注*-1
         }
       }
+      await updateStatus(record.$id.value)
       Swal.fire({
         icon: 'success',
         title: 'Processing completes',
+      }).then(() => {
+        window.location.reload()
       })
     })
   }
