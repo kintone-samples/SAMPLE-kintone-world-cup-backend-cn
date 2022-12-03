@@ -1,7 +1,9 @@
 /* eslint-disable no-restricted-syntax */
 import { KintoneRestAPIClient } from '@kintone/rest-api-client'
 import { DateTime } from 'luxon'
+import Swal from 'sweetalert2'
 import { appList, matchInfoField, usersField, userChipInField, scoreField } from './config'
+import './51-modern-default.css'
 // 比赛及赔率信息(matchInfo) 的自定义开发
 // 获取当前场次所有的投注。依次根据创建者进行分类。
 // 循环处理每个人的投注
@@ -114,8 +116,8 @@ kintone.events.on('app.record.detail.show', async (event) => {
 
   const button = document.createElement('button')
   button.id = 'score'
-  button.classList.add('kintoneplugin-button-normal')
-  button.innerText = '一键开奖'
+  button.classList.add('kintoneplugin-button-dialog-ok')
+  button.innerText = 'Integral Calculation'
   button.onclick = () => {
     getChipInListByMatchId(matchId).then(async (resp) => {
       // console.log(resp.records)
@@ -125,9 +127,9 @@ kintone.events.on('app.record.detail.show', async (event) => {
         const createTime = item[userChipInField.Create_time].value
         const deadLine = record[matchInfoField.Deadline].value
         const createrUser = item[userChipInField.Create_user].value.code
-        const deadLineObj = DateTime.fromISO(deadLine)
-        const createTimeObj = DateTime.fromISO(createTime)
-        if (deadLineObj < createTimeObj) {
+        const deadLineString = DateTime.fromISO(deadLine).toUnixInteger()
+        const createTimeString = DateTime.fromISO(createTime).toUnixInteger()
+        if (deadLineString < createTimeString) {
           return false
         }
         if (userList.indexOf(createrUser) >= 0) {
@@ -138,9 +140,9 @@ kintone.events.on('app.record.detail.show', async (event) => {
       })
       // console.log(newList)
       const oddsMapping = {
-        A胜B: matchInfoField.OddsA,
-        A平B: matchInfoField.OddsC,
-        A负B: matchInfoField.OddsB,
+        Awin: matchInfoField.OddsA,
+        draw: matchInfoField.OddsC,
+        Bwin: matchInfoField.OddsB,
       }
       const result = record[matchInfoField.Result].value
       const oddChoose = oddsMapping[result]
@@ -199,37 +201,13 @@ kintone.events.on('app.record.detail.show', async (event) => {
           // 积分计算：先减去下注，再加上赢取
           // 积分履历：包含下注，如果有赢取就加上
           // 积分结果：赢取就是赢取，输的话是下注*-1
-          console.log(diffScore)
-          // console.log(scoreResult)
         }
-        // GetLeftScore(createrUser).then(async (leftScore) => {
-        //   if (leftScore > 0) {
-        //     let gotScore = 0
-        //     let scoreResult = 0
-        //     // 更新用户积分，积分履历,以及积分结果（选错就是-押注分）
-        //     if (userChipInType === result) {
-        //       gotScore = userChipInScore * oddValue
-        //       scoreResult = gotScore
-        //     } else {
-        //       scoreResult = userChipInScore * -1
-        //     }
-        //     await updateSocreResult(createrUser, matchId, scoreResult)
-
-        //     // 积分计算：先减去下注，再加上赢取
-        //     // 积分履历：包含下注，如果有赢取就加上
-        //     // 积分结果：赢取就是赢取，输的话是下注*-1
-        //     console.log(gotScore)
-        //     console.log(scoreResult)
-        //   }
-        // })
-        // if ()
       }
+      Swal.fire({
+        icon: 'success',
+        title: 'Processing completes',
+      })
     })
-    // setScore().then(() => {
-    //   new swal("开奖完成", "开奖完成！", "success").then(() => {
-    //     window.location.reload();
-    //   });
-    // });
   }
   kintone.app.record.getHeaderMenuSpaceElement().appendChild(button)
   return event
