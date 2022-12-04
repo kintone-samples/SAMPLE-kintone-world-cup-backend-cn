@@ -4,6 +4,7 @@ import { DateTime } from 'luxon'
 import Swal from 'sweetalert2'
 import { appList, matchInfoField, usersField, userChipInField, scoreField } from './config'
 import './51-modern-default.css'
+import math from './utils'
 // 比赛及赔率信息(matchInfo) 的自定义开发
 // 获取当前场次所有的投注。依次根据创建者进行分类。
 // 循环处理每个人的投注
@@ -39,7 +40,7 @@ const GetFreezeScore = async (createrUser) => {
   const resp = await client.record.getRecords(params)
   let freezeScore = 0
   for (const value of resp.records) {
-    freezeScore += Number(value[userChipInField.Chip_in_score].value)
+    freezeScore = math.add(Number(value[userChipInField.Chip_in_score].value), freezeScore)
   }
   return freezeScore
 }
@@ -48,7 +49,7 @@ const GetFreezeScore = async (createrUser) => {
 const GetLeftScore = async (createrUser) => {
   const effectiveSocre = await GetEffectiveSocre(createrUser)
   const freezeScore = await GetFreezeScore(createrUser)
-  const leftScore = effectiveSocre - freezeScore
+  const leftScore = math.subtract(effectiveSocre, freezeScore)
   return leftScore
 }
 
